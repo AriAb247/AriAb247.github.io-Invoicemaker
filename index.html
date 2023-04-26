@@ -56,7 +56,7 @@
         <br>
         <button type="submit">Generate Invoice</button>
     </form>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
     <script>
         const addItemButton = document.getElementById('add-item');
         const itemsContainer = document.getElementById('items');
@@ -76,11 +76,11 @@
         document.getElementById('invoice-form').addEventListener('submit', function (event) {
             event.preventDefault();
 
-            const title = document.getElementById('title').value;
+                        const title = document.getElementById('title').value;
             const itemNames = document.getElementsByClassName('item-name');
             const itemCosts = document.getElementsByClassName('item-cost');
 
-            const pdf = new jsPDF();
+            const pdf = new jsPDF('p', 'pt');
             pdf.setFontSize(24);
             pdf.text(title, 20, 30);
             pdf.setFontSize(16);
@@ -98,7 +98,7 @@
                     yPos = 20;
                 }
 
-                                pdf.text(`${itemName}: $${itemCost.toFixed(2)}`, 20, yPos);
+                pdf.text(`${itemName}: $${itemCost.toFixed(2)}`, 20, yPos);
                 yPos += 10;
             }
 
