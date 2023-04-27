@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <title>Invoice Generator</title>
     <style>
@@ -37,7 +38,7 @@
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
+            max-width: 600px;
             width: 100%;
         }
 
@@ -54,15 +55,20 @@
             width: 100%;
         }
 
-        .item {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .item-cost {
-            width: 80px;
+        .items-table th,
+        .items-table td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item-cost, .item-desc {
+            width: 120px;
         }
 
         #add-item, button[type="submit"] {
@@ -90,25 +96,23 @@
     <form id="invoice-form">
         <label for="title">Title:</label>
         <input type="text" id="title" name="title" required>
-        <br>
-        <label for="company">Company:</label>
-        <select id="company" name="company">
-            <option value="AS_Portfolio">AS Portfolio</option>
-            <option value="Oxon_Curtains">Oxon Curtains</option>
-            <option value="Oxon_Alterations">Oxon Alterations</option>
-            <option value="Altum_Medical">Altum Medical</option>
-        </select>
+        <label for="billed-person">Billed to:</label>
+        <input type="text" id="billed-person" name="billed-person" required>
+        <label for="bank-details">Bank details:</label>
+        <input type="text" id="bank-details" name="bank-details" required>
         <br>
         <table class="items-table">
             <thead>
                 <tr>
                     <th>Item</th>
+                    <th>Description</th>
                     <th>Cost</th>
                 </tr>
             </thead>
             <tbody id="items">
                 <tr class="item">
                     <td><input type="text" class="item-name" required></td>
+                    <td><input type="text" class="item-desc" required></td>
                     <td><input type="number" class="item-cost" step="0.01" required></td>
                 </tr>
             </tbody>
@@ -117,117 +121,78 @@
         <br>
         <button type="submit">Generate Invoice</button>
     </form>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.1/jspdf.umd.min.js"></script>
     <script>
+        // Adding a new item row
         document.getElementById('add-item').addEventListener('click', function () {
             const itemsTable = document.getElementById('items');
             const newRow = document.createElement('tr');
             newRow.classList.add('item');
+                    newRow.innerHTML = `
+            <td><input type="text" class="item-name" required></td>
+            <td><input type="text" class="item-desc" required></td>
+            <td><input type="number" class="item-cost" step="0.01" required></td>
+        `;
 
-            newRow.innerHTML = `
-                <td><input type="text" class="item-name" required></td>
-                <td><input type="number" class="item-cost" step="0.01" required></td>
-            `;
+        itemsTable.appendChild(newRow);
+    });
 
-            itemsTable.appendChild(newRow);
-        });
-document.getElementById('invoice-form').addEventListener('submit', async function (event) {
-    event.preventDefault();
+    // Generating the invoice PDF
+    document.getElementById('invoice-form').addEventListener('submit', function (event) {
+        event.preventDefault();
 
-    const title = document.getElementById('title').value;
-    const company = document.getElementById('company').value;
-    const items = document.getElementsByClassName('item');
+        const title = document.getElementById('title').value;
+        const billedPerson = document.getElementById('billed-person').value;
+        const bankDetails = document.getElementById('bank-details').value;
+        const items = document.getElementsByClassName('item');
 
-    const companyDetails = {
-        'AS_Portfolio': {
-            name: 'AS Portfolio',
-            address: '123 Portfolio St, London, UK',
-            logo: 'AS_Portfolio_logo.png',
-        },
-        'Oxon_Curtains': {
-            name: 'Oxon Curtains',
-            address: '456 Curtains Rd, Oxford, UK',
-            logo: 'Oxon_Curtains_logo.png',
-        },
-        'Oxon_Alterations': {
-            name: 'Oxon Alterations',
-            address: '789 Alterations Ave, Oxford, UK',
-            logo: 'Oxon_Alterations_logo.png',
-        },
-        'Altum_Medical': {
-            name: 'Altum Medical',
-            address: '321 Medical St, London, UK',
-            logo: 'Altum_Medical_logo.png',
-        },
-    };
-
-    const selectedCompany = companyDetails[company];
-
-    const response = await fetch(selectedCompany.logo);
-    const blob = await response.blob();
-    const reader = new FileReader();
-    reader.readAsDataURL(blob);
-    reader.onloadend = function () {
-        const base64Logo = reader.result;
-
-        const pdf = new jsPDF('p', 'pt', 'a4');
-        pdf.addImage(base64Logo, 'PNG', 40, 20, 80, 40);
+        const pdf = new jsPDF('p', 'pt', 'letter');
+        pdf.setFont("Raleway");
         pdf.setFontSize(24);
-        pdf.text(title, 150, 40);
-
+        pdf.text("Invoice", 480, 30);
         pdf.setFontSize(14);
-        pdf.text(selectedCompany.name, 40, 80);
-        pdf.text(selectedCompany.address, 40, 100);
+        pdf.text("Billed to:", 20, 60);
+        pdf.text(billedPerson, 20, 80);
+        pdf.text("Bank details:", 20, 100);
+        pdf.text(bankDetails, 20, 120);
+        pdf.setFontSize(18);
+        pdf.text(title, 20, 160);
 
-        const invoiceNumber = Math.floor(Math.random() * 1000000);
-        const invoiceDate = new Date().toLocaleDateString();
-        pdf.text(`Invoice Number: ${invoiceNumber}`, 350, 80);
-        pdf.text(`Invoice Date: ${invoiceDate}`, 350, 100);
-
-        let yPos = 160;
+        let yPos = 200;
         let grandTotal = 0;
-        pdf.setFontSize(12);
-        pdf.text("Item", 40, yPos);
-        pdf.text("Cost", 500, yPos);
-        pdf.setLineWidth(1);
-        pdf.line(40, yPos + 10, 550, yPos + 10);
-        yPos += 30;
 
         for (let i = 0; i < items.length; i++) {
             const itemName = items[i].querySelector('.item-name').value;
+            const itemDesc = items[i].querySelector('.item-desc').value;
             const itemCost = parseFloat(items[i].querySelector('.item-cost').value);
+
             grandTotal += itemCost;
 
-            pdf.text(itemName, 40, yPos);
-            pdf.text(`£${itemCost.toFixed(2)}`, 500, yPos);
+            pdf.setFontSize(12);
+            pdf.text(`${itemName}`, 20, yPos);
+            pdf.text(`${itemDesc}`, 220, yPos);
+            pdf.text(`£${itemCost.toFixed(2)}`, 420, yPos);
             yPos += 20;
 
-            if (yPos > 680) {
+            if (yPos > 700) {
                 pdf.addPage();
                 yPos = 20;
             }
+                        if (i < items.length - 1) {
+                pdf.setLineWidth(0.5);
+                pdf.line(20, yPos, 580, yPos);
+                yPos += 20;
+            }
         }
 
-        pdf.setLineWidth(1);
-        pdf.line(40, yPos, 550, yPos);
-        yPos += 30;
-
         pdf.setFontSize(14);
-        pdf.text('Subtotal:', 400, yPos);
-        pdf.text(`£${grandTotal.toFixed(2)}`, 500, yPos);
-        yPos += 20;
+        pdf.setFont("Roboto");
+        pdf.text(`Subtotal: £${grandTotal.toFixed(2)}`, 420, yPos + 20);
+        pdf.text(`Total: £${grandTotal.toFixed(2)}`, 420, yPos + 40);
 
-                const total = grandTotal; // Add any additional calculations if needed
-        pdf.setFont('Helvetica-Bold');
-        pdf.text('Total:', 400, yPos);
-        pdf.text(`£${total.toFixed(2)}`, 500, yPos);
-        pdf.setFont('Helvetica');
-
-        pdf.save(`Invoice_${invoiceNumber}.pdf`);
-    };
-});
-
-
-    </script>
+        pdf.save(`${title}.pdf`);
+    });
+</script>
 </body>
 </html>
+
