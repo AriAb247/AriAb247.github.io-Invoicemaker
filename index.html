@@ -91,69 +91,139 @@
         <label for="title">Title:</label>
         <input type="text" id="title" name="title" required>
         <br>
-        <div id="items">
-            <div class="item">
-                <label>Item:</label>
-                <input type="text" class="item-name" required>
-                <label>Cost:</label>
-                <input type="number" class="item-cost" step="0.01" required>
-            </div>
-        </div>
+        <label for="company">Company:</label>
+        <select id="company" name="company">
+            <option value="AS_Portfolio">AS Portfolio</option>
+            <option value="Oxon_Curtains">Oxon Curtains</option>
+            <option value="Oxon_Alterations">Oxon Alterations</option>
+            <option value="Altum_Medical">Altum Medical</option>
+        </select>
+        <br>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Cost</th>
+                </tr>
+            </thead>
+            <tbody id="items">
+                <tr class="item">
+                    <td><input type="text" class="item-name" required></td>
+                    <td><input type="number" class="item-cost" step="0.01" required></td>
+                </tr>
+            </tbody>
+        </table>
         <button type="button" id="add-item">Add Item</button>
         <br>
         <button type="submit">Generate Invoice</button>
     </form>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
     <script>
-        const addItemButton = document.getElementById('add-item');
-        const itemsContainer = document.getElementById('items');
-        
-        addItemButton.addEventListener('click', function () {
-            const newItem = document.createElement('div');
-            newItem.className = 'item';
-            newItem.innerHTML = `
-                <label>Item:</label>
-                <input type="text" class="item-name" required>
-                <label>Cost:</label>
-                <input type="number" class="item-cost" step="0.01" required>
+        document.getElementById('add-item').addEventListener('click', function () {
+            const itemsTable = document.getElementById('items');
+            const newRow = document.createElement('tr');
+            newRow.classList.add('item');
+
+            newRow.innerHTML = `
+                <td><input type="text" class="item-name" required></td>
+                <td><input type="number" class="item-cost" step="0.01" required></td>
             `;
-            itemsContainer.appendChild(newItem);
+
+            itemsTable.appendChild(newRow);
         });
 
-        document.getElementById('invoice-form').addEventListener('submit', function (event) {
+        document.getElementById('invoice-form').addEventListener('submit', async function (event) {
             event.preventDefault();
 
-                        const title = document.getElementById('title').value;
-            const itemNames = document.getElementsByClassName('item-name');
-            const itemCosts = document.getElementsByClassName('item-cost');
+            const title = document.getElementById('title').value;
+            const company = document.getElementById('company').value;
+            const items = document.getElementsByClassName('item');
 
-            const pdf = new jsPDF('p', 'pt');
-            pdf.setFontSize(24);
-            pdf.text(title, 20, 30);
-            pdf.setFontSize(16);
+            const companyDetails = {
+                'AS_Portfolio': {
+                    name: 'AS Portfolio',
+                    address: '123 Portfolio St, London, UK',
+                    logo: 'AS_Portfolio_logo.png',
+                },
+                'Oxon_Curtains': {
+                    name: 'Oxon Curtains',
+                    address: '456 Curtains Rd, Oxford, UK',
+                    logo: 'Oxon_Curtains_logo.png',
+                },
+                'Oxon_Alterations': {
+                    name: 'Oxon Alterations',
+                    address: '789 Alterations Ave, Oxford, UK',
+                    logo: 'Oxon_Alterations_logo.png',
+                },
+                'Altum_Medical': {
+                    name: 'Altum Medical',
+                    address: '321 Medical St, London, UK',
+                    logo: 'Altum_Medical_logo.png',
+                },
+            };
 
-            let yPos = 50;
-            let total = 0;
+            const selectedCompany = companyDetails[company];
 
-            for (let i = 0; i < itemNames.length; i++) {
-                const itemName = itemNames[i].value;
-                const itemCost = parseFloat(itemCosts[i].value);
-                total += itemCost;
+            const response = await fetch(selectedCompany.logo);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = function () {
+                const base64Logo = reader.result;
 
-                if (yPos > 250) {
-                    pdf.addPage();
-                    yPos = 20;
+                const pdf = new jsPDF('p', 'pt', 'letter');
+                pdf.addImage(base64Logo, 'PNG', 20, 20, 80, 40);
+                pdf.setFontSize(24);
+                pdf.text(title, 110, 40);
+
+                pdf.setFontSize(14);
+                pdf.text(selectedCompany.name, 20, 80);
+                pdf.text(selectedCompany.address, 20, 100);
+
+                const invoiceNumber = Math.floor(Math.random() * 1000000);
+                const invoiceDate = new Date().toLocaleDateString();
+                pdf.text(`Invoice Number: ${invoiceNumber}`, 400, 80);
+                pdf.text(`Invoice Date: ${invoiceDate}`, 400, 100);
+
+                let yPos = 140;
+                let grandTotal = 0;
+                pdf.setFontSize(12);
+                pdf.text("Item", 20, yPos);
+                pdf.text("Cost", 480, yPos);
+                pdf.setLineWidth(1);
+                pdf.line(20, yPos + 10, 550, yPos + 10);
+                yPos += 20;
+
+                for (let i = 0; i < items.length; i++) {
+                    const itemName = items[i].querySelector('.item-name').value;
+                    const itemCost = parseFloat(items[i].querySelector('.item-cost').value);
+                    grandTotal += itemCost;
+
+                    pdf.text(itemName, 20, yPos);
+                    pdf.text(`£${itemCost.toFixed(2)}`, 480, yPos);
+                    yPos += 20;
+
+                    if (yPos > 650) {
+                        pdf.addPage();
+                        yPos = 20;
+                    }
                 }
 
-                pdf.text(`${itemName}: $${itemCost.toFixed(2)}`, 20, yPos);
-                yPos += 10;
-            }
+                pdf.setLineWidth(1);
+                pdf.line(20, yPos, 550, yPos);
+                yPos += 20;
 
-            yPos += 10;
-            pdf.setFontType('bold');
-            pdf.text(`Total: $${total.toFixed(2)}`, 20, yPos);
+                pdf.setFontSize(14);
+                pdf.text('Subtotal:', 400, yPos);
+                pdf.text(`£${grandTotal.toFixed(2)}`, 480, yPos);
+                yPos += 20;
 
-            pdf.save(`${title}.pdf`);
+                const total = grandTotal; // Add any additional calculations if needed
+                pdf.text('Total:', 400, yPos);
+                pdf.text(`£${total.toFixed(2)}`, 480, yPos);
+
+                pdf.save(`Invoice_${invoiceNumber}.pdf`);
+            };
         });
     </script>
 </body>
