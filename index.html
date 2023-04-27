@@ -131,100 +131,103 @@
 
             itemsTable.appendChild(newRow);
         });
+document.getElementById('invoice-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
 
-        document.getElementById('invoice-form').addEventListener('submit', async function (event) {
-            event.preventDefault();
+    const title = document.getElementById('title').value;
+    const company = document.getElementById('company').value;
+    const items = document.getElementsByClassName('item');
 
-            const title = document.getElementById('title').value;
-            const company = document.getElementById('company').value;
-            const items = document.getElementsByClassName('item');
+    const companyDetails = {
+        'AS_Portfolio': {
+            name: 'AS Portfolio',
+            address: '123 Portfolio St, London, UK',
+            logo: 'AS_Portfolio_logo.png',
+        },
+        'Oxon_Curtains': {
+            name: 'Oxon Curtains',
+            address: '456 Curtains Rd, Oxford, UK',
+            logo: 'Oxon_Curtains_logo.png',
+        },
+        'Oxon_Alterations': {
+            name: 'Oxon Alterations',
+            address: '789 Alterations Ave, Oxford, UK',
+            logo: 'Oxon_Alterations_logo.png',
+        },
+        'Altum_Medical': {
+            name: 'Altum Medical',
+            address: '321 Medical St, London, UK',
+            logo: 'Altum_Medical_logo.png',
+        },
+    };
 
-            const companyDetails = {
-                'AS_Portfolio': {
-                    name: 'AS Portfolio',
-                    address: '123 Portfolio St, London, UK',
-                    logo: 'AS_Portfolio_logo.png',
-                },
-                'Oxon_Curtains': {
-                    name: 'Oxon Curtains',
-                    address: '456 Curtains Rd, Oxford, UK',
-                    logo: 'Oxon_Curtains_logo.png',
-                },
-                'Oxon_Alterations': {
-                    name: 'Oxon Alterations',
-                    address: '789 Alterations Ave, Oxford, UK',
-                    logo: 'Oxon_Alterations_logo.png',
-                },
-                'Altum_Medical': {
-                    name: 'Altum Medical',
-                    address: '321 Medical St, London, UK',
-                    logo: 'Altum_Medical_logo.png',
-                },
-            };
+    const selectedCompany = companyDetails[company];
 
-            const selectedCompany = companyDetails[company];
+    const response = await fetch(selectedCompany.logo);
+    const blob = await response.blob();
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = function () {
+        const base64Logo = reader.result;
 
-            const response = await fetch(selectedCompany.logo);
-            const blob = await response.blob();
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onloadend = function () {
-                const base64Logo = reader.result;
+        const pdf = new jsPDF('p', 'pt', 'a4');
+        pdf.addImage(base64Logo, 'PNG', 40, 20, 80, 40);
+        pdf.setFontSize(24);
+        pdf.text(title, 150, 40);
 
-                const pdf = new jsPDF('p', 'pt', 'letter');
-                pdf.addImage(base64Logo, 'PNG', 20, 20, 80, 40);
-                pdf.setFontSize(24);
-                pdf.text(title, 110, 40);
+        pdf.setFontSize(14);
+        pdf.text(selectedCompany.name, 40, 80);
+        pdf.text(selectedCompany.address, 40, 100);
 
-                pdf.setFontSize(14);
-                pdf.text(selectedCompany.name, 20, 80);
-                pdf.text(selectedCompany.address, 20, 100);
+        const invoiceNumber = Math.floor(Math.random() * 1000000);
+        const invoiceDate = new Date().toLocaleDateString();
+        pdf.text(`Invoice Number: ${invoiceNumber}`, 350, 80);
+        pdf.text(`Invoice Date: ${invoiceDate}`, 350, 100);
 
-                const invoiceNumber = Math.floor(Math.random() * 1000000);
-                const invoiceDate = new Date().toLocaleDateString();
-                pdf.text(`Invoice Number: ${invoiceNumber}`, 400, 80);
-                pdf.text(`Invoice Date: ${invoiceDate}`, 400, 100);
+        let yPos = 160;
+        let grandTotal = 0;
+        pdf.setFontSize(12);
+        pdf.text("Item", 40, yPos);
+        pdf.text("Cost", 500, yPos);
+        pdf.setLineWidth(1);
+        pdf.line(40, yPos + 10, 550, yPos + 10);
+        yPos += 30;
 
-                let yPos = 140;
-                let grandTotal = 0;
-                pdf.setFontSize(12);
-                pdf.text("Item", 20, yPos);
-                pdf.text("Cost", 480, yPos);
-                pdf.setLineWidth(1);
-                pdf.line(20, yPos + 10, 550, yPos + 10);
-                yPos += 20;
+        for (let i = 0; i < items.length; i++) {
+            const itemName = items[i].querySelector('.item-name').value;
+            const itemCost = parseFloat(items[i].querySelector('.item-cost').value);
+            grandTotal += itemCost;
 
-                for (let i = 0; i < items.length; i++) {
-                    const itemName = items[i].querySelector('.item-name').value;
-                    const itemCost = parseFloat(items[i].querySelector('.item-cost').value);
-                    grandTotal += itemCost;
+            pdf.text(itemName, 40, yPos);
+            pdf.text(`£${itemCost.toFixed(2)}`, 500, yPos);
+            yPos += 20;
 
-                    pdf.text(itemName, 20, yPos);
-                    pdf.text(`£${itemCost.toFixed(2)}`, 480, yPos);
-                    yPos += 20;
+            if (yPos > 680) {
+                pdf.addPage();
+                yPos = 20;
+            }
+        }
 
-                    if (yPos > 650) {
-                        pdf.addPage();
-                        yPos = 20;
-                    }
-                }
+        pdf.setLineWidth(1);
+        pdf.line(40, yPos, 550, yPos);
+        yPos += 30;
 
-                pdf.setLineWidth(1);
-                pdf.line(20, yPos, 550, yPos);
-                yPos += 20;
-
-                pdf.setFontSize(14);
-                pdf.text('Subtotal:', 400, yPos);
-                pdf.text(`£${grandTotal.toFixed(2)}`, 480, yPos);
-                yPos += 20;
+        pdf.setFontSize(14);
+        pdf.text('Subtotal:', 400, yPos);
+        pdf.text(`£${grandTotal.toFixed(2)}`, 500, yPos);
+        yPos += 20;
 
                 const total = grandTotal; // Add any additional calculations if needed
-                pdf.text('Total:', 400, yPos);
-                pdf.text(`£${total.toFixed(2)}`, 480, yPos);
+        pdf.setFont('Helvetica-Bold');
+        pdf.text('Total:', 400, yPos);
+        pdf.text(`£${total.toFixed(2)}`, 500, yPos);
+        pdf.setFont('Helvetica');
 
-                pdf.save(`Invoice_${invoiceNumber}.pdf`);
-            };
-        });
+        pdf.save(`Invoice_${invoiceNumber}.pdf`);
+    };
+});
+
+
     </script>
 </body>
 </html>
