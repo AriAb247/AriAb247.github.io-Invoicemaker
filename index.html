@@ -130,43 +130,43 @@
             itemsTable.appendChild(newRow);
         });
 
-        // Generating the invoice PDF
-        document.getElementById('invoice-form').addEventListener('submit', function (event) {
-            event.preventDefault();
+       // Generating the invoice PDF
+document.getElementById('invoice-form').addEventListener('submit', function (event) {
+    event.preventDefault();
 
-            const title = document.getElementById('title').value;
-            const items = document.getElementsByClassName('item');
+    const title = document.getElementById('title').value;
+    const items = document.getElementsByClassName('item');
 
-            const pdf = new jsPDF('p', 'pt', 'letter');
+    const pdf = new jsPDF('p', 'pt', 'letter');
 
-            pdf.setFontSize(24);
-            pdf.text(title, 20, 30);
+    pdf.setFontSize(24);
+    pdf.text(title, 20, 30);
 
-            let yPos = 60;
-            let grandTotal = 0;
+    let yPos = 60;
+    let grandTotal = 0;
 
-            for (let i = 0; i < items.length; i++) {
-                const itemName = items[i].querySelector('.item-name').value;
-                const itemCost = parseFloat(items[i].querySelector('.item-cost').value);
+    for (let i = 0; i < items.length; i++) {
+        const itemName = items[i].querySelector('.item-name').value;
+        const itemCost = parseFloat(items[i].querySelector('.item-cost').value);
 
-                grandTotal += itemCost;
+        grandTotal += itemCost;
 
-                pdf.setFontSize(12);
-                pdf.text(`${itemName}: $${itemCost.toFixed(2)}`, 20, yPos);
-                yPos += 20;
+        pdf.setFontSize(12);
+        pdf.text(`${itemName}: £${itemCost.toFixed(2)}`, 20, yPos);
+        yPos += 20;
 
-                if (yPos > 250) {
-                    pdf.addPage();
-                    yPos = 20;
-                }
-            }
+        if (yPos > 250) {
+            pdf.addPage();
+            yPos = 20;
+        }
+    }
 
-            pdf.setFontSize(14);
-            pdf.text('Total:', 430, yPos);
-            pdf.text(`$${grandTotal.toFixed(2)}`, 480, yPos);
+    pdf.setFontSize(14);
+    pdf.text('Total:', 430, yPos);
+    pdf.text(`£${grandTotal.toFixed(2)}`, 480, yPos);
 
-            pdf.save(`${title}.pdf`);
-        });
+    pdf.save(`${title}.pdf`);
+});
     </script>
 </body>
 </html>
