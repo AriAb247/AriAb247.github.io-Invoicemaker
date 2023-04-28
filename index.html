@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <title>Invoice Generator</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        label {
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 1rem;
+            font-family: inherit;
+            width: 100%;
+        }
+
+        .item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .item-cost {
+            width: 80px;
+        }
+
+        #add-item, button[type="submit"] {
+            background-color: #333;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #add-item:hover, button[type="submit"]:hover {
+            background-color: #555;
+        }
+
+        button[type="submit"] {
+            align-self: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <h1>Invoice Generator</h1>
+    <form id="invoice-form">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required>
+        <br>
+        <label for="company">Company:</label>
+        <select id="company" name="company">
+            <option value="AS_Portfolio">AS Portfolio</option>
+            <option value="Oxon_Curtains">Oxon Curtains</option>
+            <option value="Oxon_Alterations">Oxon Alterations</option>
+            <option value="Altum_Medical">Altum Medical</option>
+        </select>
+        <br>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Cost</th>
+                </tr>
+            </thead>
+            <tbody id="items">
+                <tr class="item">
+                    <td><input type="text" class="item-name" required></td>
+                    <td><input type="number" class="item-cost" step="0.01" required></td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="button" id="add-item">Add Item</button>
+        <br>
+        <button type="submit">Generate Invoice</button>
+    </form>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
+    <script>
+        document.getElementById('add-item').addEventListener('click', function () {
+            const itemsTable = document.getElementById('items');
+            const newRow = document.createElement('tr');
+            newRow.classList.add('item');
+
+            newRow.innerHTML = `
+                <td><input type="text" class="item-name" required></td>
+                <td><input type="number" class="item-cost" step="0.01" required></td>
+            `;
+
+            itemsTable.appendChild(newRow);
+        });
+
+        document.getElementById('invoice-form').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const title = document.getElementById('title').value;
+            const company = document.getElementById('company').value;
+            const items = document.getElementsByClassName('item');
+
+            const companyDetails = {
+                'AS_Portfolio': {
+                    name: 'AS Portfolio',
+                    address: '123 Portfolio St, London, UK',
+                    logo: 'AS_Portfolio_logo.png',
+                },
+                'Oxon_Curtains': {
+                    name: 'Oxon Curtains',
+                    address: '456 Curtains Rd, Oxford, UK',
+                    logo: 'Oxon_Curtains_logo.png',
+                },
+                'Oxon_Alterations': {
+                    name: 'Oxon Alterations',
+                    address: '789 Alterations Ave, Oxford, UK',
+                    logo: 'Oxon_Alterations_logo.png',
+                },
+                'Altum_Medical': {
+                    name: 'Altum Medical',
+                    address: '321 Medical St, London, UK',
+                    logo: 'Altum_Medical_logo.png',
+                },
+            };
+
+            const selectedCompany = companyDetails[company];
+
+            const response = await fetch(selectedCompany.logo);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = function () {
+                const base64Logo = reader.result;
+
+                const pdf = new jsPDF('p', 'pt', 'letter');
+                pdf.addImage(base64Logo, 'PNG', 20, 20, 80, 40);
+                pdf.setFontSize(24);
+                pdf.text(title, 110, 40);
+
+                pdf.setFontSize(14);
+                pdf.text(selectedCompany.name, 20, 80);
+                pdf.text(selectedCompany.address, 20, 100);
+
+                const invoiceNumber = Math.floor(Math.random() * 1000000);
+                const invoiceDate = new Date().toLocaleDateString();
+                pdf.text(`Invoice Number: ${invoiceNumber}`, 400, 80);
+                pdf.text(`Invoice Date: ${invoiceDate}`, 400, 100);
+
+                let yPos = 140;
+                let grandTotal = 0;
+                pdf.setFontSize(12);
+                pdf.text("Item", 20, yPos);
+                pdf.text("Cost", 480, yPos);
+                pdf.setLineWidth(1);
+                pdf.line(20, yPos + 10, 550, yPos + 10);
+                yPos += 20;
+
+                for (let i = 0; i < items.length; i++) {
+                    const itemName = items[i].querySelector('.item-name').value;
+                    const itemCost = parseFloat(items[i].querySelector('.item-cost').value);
+                    grandTotal += itemCost;
+
+                    pdf.text(itemName, 20, yPos);
+                    pdf.text(`£${itemCost.toFixed(2)}`, 480, yPos);
+                    yPos += 20;
+
+                    if (yPos > 650) {
+                        pdf.addPage();
+                        yPos = 20;
+                    }
+                }
+
+                pdf.setLineWidth(1);
+                pdf.line(20, yPos, 550, yPos);
+                yPos += 20;
+
+                pdf.setFontSize(14);
+                pdf.text('Subtotal:', 400, yPos);
+                pdf.text(`£${grandTotal.toFixed(2)}`, 480, yPos);
+                yPos += 20;
+
+                const total = grandTotal; // Add any additional calculations if needed
+                pdf.text('Total:', 400, yPos);
+                pdf.text(`£${total.toFixed(2)}`, 480, yPos);
+
+                pdf.save(`Invoice_${invoiceNumber}.pdf`);
+            };
+        });
+    </script>
+</body>
+</html>
