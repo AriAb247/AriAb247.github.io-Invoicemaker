@@ -97,93 +97,101 @@
         <input type="text" id="title" name="title" required>
         <br>
         <label for="company">Company:</label>
-        <select id="company" name="company">
+        <select id="company" name="company" required>
             <option value="AS_Portfolio">AS Portfolio</option>
             <option value="Oxon_Curtains">Oxon Curtains</option>
             <option value="Oxon_Alterations">Oxon Alterations</option>
             <option value="Altum_Medical">Altum Medical</option>
         </select>
-<br>
-<label for="billing">Billing Person:</label>
-<input type="text" id="billing" name="billing" required>
-<br>
-<label for="bank-details">Bank Details:</label>
-<input type="text" id="bank-details" name="bank-details" required>
-<br>
-<table class="items-table" id="items-table">
-    <thead>
-        <tr>
-            <th>Description</th>
-            <th class="item-cost">Cost</th>
-        </tr>
-    </thead>
-    <tbody>
-    </tbody>
-</table>
-<button type="button" id="add-item">Add item</button>
-<br>
-<button type="submit">Generate Invoice</button>
-</form>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.1/jspdf.umd.min.js"></script>
-<script>
-    // Adding a new item row
-    document.getElementById('add-item').addEventListener('click', function () {
+        <br>
+        <table class="items-table">
+            <thead>
+                                <tr>
+                    <th>Description</th>
+                    <th class="item-cost">Cost</th>
+                    <th class="item-cost">Qty</th>
+                </tr>
+            </thead>
+            <tbody id="items">
+                <tr>
+                    <td><input type="text" name="description[]" required></td>
+                    <td><input type="number" step="0.01" name="cost[]" class="item-cost" required></td>
+                    <td><input type="number" name="qty[]" class="item-cost" required></td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="button" id="add-item">Add Item</button>
+        <br>
+        <button type="submit">Generate Invoice</button>
+    </form>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.1/jspdf.umd.min.js"></script>
+    <script>
+        const addItemButton = document.getElementById('add-item');
         const itemsTable = document.getElementById('items');
-        const newRow = document.createElement('tr');
-        newRow.classList.add('item');
 
-        newRow.innerHTML = `
-            <td><input type="text" class="item-name" required></td>
-            <td><input type="number" class="item-quantity" required></td>
-            <td><input type="number" class="item-cost" step="0.01" required></td>
-        `;
+        addItemButton.addEventListener('click', () => {
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="text" name="description[]" required></td>
+                <td><input type="number" step="0.01" name="cost[]" class="item-cost" required></td>
+                <td><input type="number" name="qty[]" class="item-cost" required></td>
+            `;
+            itemsTable.appendChild(newRow);
+        });
 
-        itemsTable.appendChild(newRow);
-    });
+        const invoiceForm = document.getElementById('invoice-form');
+        invoiceForm.addEventListener('submit', (event) => {
+            event.preventDefault();
 
-    // Generating the invoice PDF
-    document.getElementById('invoice-form').addEventListener('submit', function (event) {
-        event.preventDefault();
+            const formData = new FormData(invoiceForm);
+            const companyInfo = {
+                'AS_Portfolio': {
+                    name: 'AS Portfolio',
+                    address: '123 Portfolio St, London, UK',
+                    logo: 'AS_Portfolio_logo',
+                },
+                // Add the rest of the companies here
+            };
 
-        const title = document.getElementById('title').value;
-        const company = document.getElementById('company').value;
-        const items = document.getElementsByClassName('item');
-        const clientName = document.getElementById('client-name').value;
-        const bankDetails = document.getElementById('bank-details').value;
+            const title = formData.get('title');
+            const companyName = formData.get('company');
+            const company = companyInfo[companyName];
+            const descriptions = formData.getAll('description[]');
+            const costs = formData.getAll('cost[]').map(Number);
+            const qtys = formData.getAll('qty[]').map(Number);
 
-        const pdf = new jsPDF('p', 'pt', 'letter');
-
-        pdf.setFont("helvetica");
-        pdf.setFontSize(24);
-        pdf.text(title, 20, 30);
-
-        let yPos = 60;
-        let grandTotal = 0;
-
-        for (let i = 0; i < items.length; i++) {
-            const itemName = items[i].querySelector('.item-name').value;
-            const itemQuantity = parseInt(items[i].querySelector('.item-quantity').value);
-            const itemCost = parseFloat(items[i].querySelector('.item-cost').value);
-
-            grandTotal += itemCost * itemQuantity;
-
+            // PDF generation
+            const pdf = new jsPDF();
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(26);
+            pdf.text(title, 20, 20);
             pdf.setFontSize(12);
-            pdf.text(`${itemName} x${itemQuantity}: £${(itemCost * itemQuantity).toFixed(2)}`, 20, yPos);
-            yPos += 20;
+            pdf.text(company.name, 20, 30);
+            pdf.text(company.address, 20, 40);
+            pdf.addImage(company.logo, 'PNG', 150, 20, 40, 20);
 
-            if (yPos > 700) {
-                pdf.addPage();
-                yPos = 20;
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(12);
+            let yPos = 60;
+            for (let i = 0; i < descriptions.length; i++) {
+                const item = descriptions[i];
+                const cost = costs[i];
+                const qty = qtys[i];
+
+                pdf.text(item, 20, yPos);
+                pdf.text(cost.toFixed(2), 150, yPos);
+                pdf.text(qty.toString(), 180, yPos);
+                yPos += 10;
+
+                if (yPos > 270) {
+                    pdf.addPage();
+                    yPos = 20;
+                }
             }
-        }
 
-        pdf.setFontSize(14);
-        pdf.text('Total:', 430, yPos);
-        pdf.text(`£${grandTotal.toFixed(2)}`, 480, yPos);
-
-        pdf.save(`${title}.pdf`);
-    });
-</script>
+            pdf.save('invoice.pdf');
+        });
+    </script>
 </body>
 </html>
-       
+
