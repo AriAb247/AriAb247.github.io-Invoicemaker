@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
     <title>Invoice Generator</title>
     <style>
         body {
@@ -96,19 +97,27 @@
             <option value="AS_Portfolio">AS Portfolio</option>
             <option value="Oxon_Curtains">Oxon Curtains</option>
             <option value="Oxon_Alterations">Oxon Alterations</option>
-            <option value="Altum_Medical">Altum Medical</option>
+                        <option value="Altum_Medical">Altum Medical</option>
         </select>
+        <br>
+        <label for="payer">Payer:</label>
+        <input type="text" id="payer" name="payer" required>
+        <br>
+        <label for="payee">Payee:</label>
+        <input type="text" id="payee" name="payee" required>
         <br>
         <table class="items-table">
             <thead>
                 <tr>
                     <th>Item</th>
+                    <th>Description</th>
                     <th>Cost</th>
                 </tr>
             </thead>
             <tbody id="items">
                 <tr class="item">
                     <td><input type="text" class="item-name" required></td>
+                    <td><input type="text" class="item-description" required></td>
                     <td><input type="number" class="item-cost" step="0.01" required></td>
                 </tr>
             </tbody>
@@ -126,6 +135,7 @@
 
             newRow.innerHTML = `
                 <td><input type="text" class="item-name" required></td>
+                <td><input type="text" class="item-description" required></td>
                 <td><input type="number" class="item-cost" step="0.01" required></td>
             `;
 
@@ -137,6 +147,8 @@
 
             const title = document.getElementById('title').value;
             const company = document.getElementById('company').value;
+            const payer = document.getElementById('payer').value;
+            const payee = document.getElementById('payee').value;
             const items = document.getElementsByClassName('item');
 
             const companyDetails = {
@@ -169,7 +181,7 @@
             const reader = new FileReader();
             reader.readAsDataURL(blob);
             reader.onloadend = function () {
-                const base64Logo = reader.result;
+                                const base64Logo = reader.result;
 
                 const pdf = new jsPDF('p', 'pt', 'letter');
                 pdf.addImage(base64Logo, 'PNG', 20, 20, 80, 40);
@@ -185,10 +197,14 @@
                 pdf.text(`Invoice Number: ${invoiceNumber}`, 400, 80);
                 pdf.text(`Invoice Date: ${invoiceDate}`, 400, 100);
 
-                let yPos = 140;
+                pdf.text(`Payer: ${payer}`, 20, 120);
+                pdf.text(`Payee: ${payee}`, 20, 140);
+
+                let yPos = 180;
                 let grandTotal = 0;
                 pdf.setFontSize(12);
                 pdf.text("Item", 20, yPos);
+                pdf.text("Description", 200, yPos);
                 pdf.text("Cost", 480, yPos);
                 pdf.setLineWidth(1);
                 pdf.line(20, yPos + 10, 550, yPos + 10);
@@ -196,10 +212,12 @@
 
                 for (let i = 0; i < items.length; i++) {
                     const itemName = items[i].querySelector('.item-name').value;
+                    const itemDescription = items[i].querySelector('.item-description').value;
                     const itemCost = parseFloat(items[i].querySelector('.item-cost').value);
                     grandTotal += itemCost;
 
                     pdf.text(itemName, 20, yPos);
+                    pdf.text(itemDescription, 200, yPos);
                     pdf.text(`£${itemCost.toFixed(2)}`, 480, yPos);
                     yPos += 20;
 
@@ -228,3 +246,4 @@
     </script>
 </body>
 </html>
+
