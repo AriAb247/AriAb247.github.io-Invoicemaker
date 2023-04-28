@@ -1,1 +1,34 @@
+                const invoiceDate = new Date().toLocaleDateString();
+                pdf.text(`Invoice #: ${invoiceNumber}`, 20, 140);
+                pdf.text(`Invoice Date: ${invoiceDate}`, 20, 160);
+
+                pdf.text(`Payee: ${payeeName}`, 20, 200);
+                pdf.text(`Payer: ${payerName}`, 20, 220);
+
+                pdf.setFontSize(12);
+                pdf.text('Item', 20, 260);
+                pdf.text('Cost', 160, 260);
+
+                let yPos = 280;
+                let total = 0;
+
+                for (let i = 0; i < items.length; i++) {
+                    const itemDescription = items[i].querySelector('.item-description').value;
+                    const itemCost = items[i].querySelector('.item-cost').value;
+
+                    pdf.text(itemDescription, 20, yPos);
+                    pdf.text(itemCost, 160, yPos);
+
+                    yPos += 20;
+                    total += parseFloat(itemCost);
+                }
+
+                pdf.setFontSize(14);
+                pdf.text(`Total: ${total.toFixed(2)}`, 140, yPos + 20);
+                pdf.save(`Invoice-${invoiceNumber}.pdf`);
+            };
+        });
+    </script>
+</body>
+</html>
 
